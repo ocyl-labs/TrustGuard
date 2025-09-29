@@ -1,0 +1,719 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, TrendingUp, Shield, Zap, DollarSign, Award, Bell, Eye, Target, Flame, Star } from 'lucide-react';
+
+// Main App Component
+const EBayIntelligenceApp = () => {
+  const [userJourney, setUserJourney] = useState({
+    type: 'buyer',
+    step: 'discovery',
+    progress: 0,
+    totalProfit: 0,
+    streakCount: 0,
+    trustScore: 0,
+    riskAvoided: 0,
+    engagement: 0
+  });
+
+  const [currentItem, setCurrentItem] = useState(null);
+  const [showAchievement, setShowAchievement] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [arbitrageOpportunities, setArbitrageOpportunities] = useState([]);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -inset-10 opacity-30">
+          <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+          <div className="absolute top-3/4 right-1/4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl animate-pulse delay-1000"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-pulse delay-2000"></div>
+        </div>
+      </div>
+
+      {/* Top Navigation */}
+      <TopNavigation 
+        userJourney={userJourney} 
+        notifications={notifications}
+        soundEnabled={soundEnabled}
+        setSoundEnabled={setSoundEnabled}
+      />
+
+      {/* Main Content Area */}
+      <div className="relative z-10 pt-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Left Panel - Journey Progress & Stats */}
+            <div className="lg:col-span-1">
+              <JourneyProgress userJourney={userJourney} setUserJourney={setUserJourney} />
+              <UserStats userJourney={userJourney} />
+              <ArbitrageAlert opportunities={arbitrageOpportunities} />
+            </div>
+
+            {/* Center Panel - Main Action Area */}
+            <div className="lg:col-span-1">
+              <MainActionPanel 
+                userJourney={userJourney}
+                setUserJourney={setUserJourney}
+                currentItem={currentItem}
+                setCurrentItem={setCurrentItem}
+                isProcessing={isProcessing}
+                setIsProcessing={setIsProcessing}
+                setShowAchievement={setShowAchievement}
+                setArbitrageOpportunities={setArbitrageOpportunities}
+              />
+            </div>
+
+            {/* Right Panel - Insights & Opportunities */}
+            <div className="lg:col-span-1">
+              <TrustIndicator currentItem={currentItem} />
+              <LiveOpportunities />
+              <RecentActivity userJourney={userJourney} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Achievement Popup */}
+      {showAchievement && (
+        <AchievementPopup 
+          achievement={showAchievement} 
+          onClose={() => setShowAchievement(null)} 
+        />
+      )}
+
+      {/* Sound Effects */}
+      <SoundEffects soundEnabled={soundEnabled} />
+    </div>
+  );
+};
+
+// Top Navigation Component
+const TopNavigation = ({ userJourney, notifications, soundEnabled, setSoundEnabled }) => {
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          
+          {/* Logo & Branding */}
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                TrustGuard Pro
+              </h1>
+              <div className="text-xs text-gray-400">Real-time eBay Intelligence</div>
+            </div>
+          </div>
+
+          {/* Quick Stats Bar */}
+          <div className="hidden md:flex items-center space-x-6 bg-white/5 rounded-full px-6 py-2">
+            <div className="flex items-center space-x-2">
+              <DollarSign className="w-4 h-4 text-green-400" />
+              <span className="text-sm font-semibold">${userJourney.totalProfit.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span className="text-sm font-semibold">{userJourney.streakCount}x</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Shield className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-semibold">{userJourney.trustScore}/100</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-2 rounded-lg ${soundEnabled ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}
+            >
+              🔊
+            </button>
+            <div className="relative">
+              <Bell className="w-5 h-5 text-gray-400" />
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {notifications.length}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Journey Progress Component
+const JourneyProgress = ({ userJourney, setUserJourney }) => {
+  const journeySteps = {
+    buyer: ['Discovery', 'Verification', 'Decision', 'Purchase', 'Feedback'],
+    seller: ['Photo', 'Listing', 'Pricing', 'Publish', 'Track'],
+    flipper: ['Scan', 'Analysis', 'Acquire', 'Optimize', 'Profit']
+  };
+
+  const currentSteps = journeySteps[userJourney.type] || journeySteps.buyer;
+  const currentStepIndex = Math.floor((userJourney.progress / 100) * currentSteps.length);
+
+  return (
+    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-white">Your Journey</h3>
+        <div className="flex space-x-2">
+          {['buyer', 'seller', 'flipper'].map(type => (
+            <button
+              key={type}
+              onClick={() => setUserJourney(prev => ({ ...prev, type, step: 'discovery' }))}
+              className={`px-3 py-1 text-xs rounded-full capitalize ${
+                userJourney.type === type 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mb-4">
+        <div className="flex justify-between text-sm text-gray-400 mb-2">
+          <span>Progress</span>
+          <span>{Math.round(userJourney.progress)}%</span>
+        </div>
+        <div className="w-full bg-white/10 rounded-full h-2">
+          <div 
+            className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-1000 ease-out"
+            style={{ width: `${userJourney.progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Journey Steps */}
+      <div className="space-y-3">
+        {currentSteps.map((step, index) => {
+          const isActive = index === currentStepIndex;
+          const isCompleted = index < currentStepIndex;
+          
+          return (
+            <div key={step} className={`flex items-center space-x-3 ${isActive ? 'animate-pulse' : ''}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                isCompleted 
+                  ? 'bg-green-500 text-white' 
+                  : isActive 
+                    ? 'bg-purple-500 text-white' 
+                    : 'bg-white/10 text-gray-400'
+              }`}>
+                {isCompleted ? '✓' : index + 1}
+              </div>
+              <span className={`${isActive ? 'text-white font-semibold' : 'text-gray-300'}`}>
+                {step}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// User Stats Component
+const UserStats = ({ userJourney }) => {
+  const stats = [
+    {
+      label: 'Total Profit',
+      value: `$${userJourney.totalProfit.toLocaleString()}`,
+      icon: DollarSign,
+      color: 'text-green-400',
+      bg: 'bg-green-500/20'
+    },
+    {
+      label: 'Success Streak',
+      value: `${userJourney.streakCount}x`,
+      icon: Flame,
+      color: 'text-orange-400',
+      bg: 'bg-orange-500/20'
+    },
+    {
+      label: 'Trust Score',
+      value: `${userJourney.trustScore}/100`,
+      icon: Shield,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/20'
+    },
+    {
+      label: 'Risks Avoided',
+      value: userJourney.riskAvoided,
+      icon: Eye,
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/20'
+    }
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-4 mb-6">
+      {stats.map((stat, index) => (
+        <div key={stat.label} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs text-gray-400 mb-1">{stat.label}</div>
+              <div className={`text-lg font-bold ${stat.color}`}>{stat.value}</div>
+            </div>
+            <div className={`w-10 h-10 ${stat.bg} rounded-lg flex items-center justify-center`}>
+              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Arbitrage Alert Component
+const ArbitrageAlert = ({ opportunities }) => {
+  if (!opportunities || opportunities.length === 0) return null;
+
+  return (
+    <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-2xl p-4 mb-6 border border-purple-500/30 animate-pulse">
+      <div className="flex items-center space-x-2 mb-2">
+        <TrendingUp className="w-5 h-5 text-purple-400" />
+        <span className="font-semibold text-purple-300">Arbitrage Alert!</span>
+      </div>
+      <div className="text-sm text-gray-300">
+        Found {opportunities.length} profit opportunities worth up to ${opportunities[0]?.profit_margin * opportunities[0]?.buy_price || 0} profit
+      </div>
+      <button className="mt-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200">
+        View Opportunities
+      </button>
+    </div>
+  );
+};
+
+// Main Action Panel Component
+const MainActionPanel = ({ 
+  userJourney, 
+  setUserJourney, 
+  currentItem, 
+  setCurrentItem, 
+  isProcessing, 
+  setIsProcessing,
+  setShowAchievement,
+  setArbitrageOpportunities
+}) => {
+  const [itemUrl, setItemUrl] = useState('');
+  const [photoData, setPhotoData] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // Simulate item verification
+  const handleVerifyItem = async () => {
+    if (!itemUrl && !photoData) return;
+    
+    setIsProcessing(true);
+    
+    // Simulate API call delay with progress updates
+    for (let i = 0; i <= 100; i += 20) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setUserJourney(prev => ({ ...prev, progress: Math.min(prev.progress + 1, 100) }));
+    }
+
+    // Mock verification result
+    const mockResult = {
+      title: 'iPhone 13 Pro Max 256GB Unlocked',
+      trustScore: Math.floor(Math.random() * 40) + 60, // 60-100
+      riskLevel: Math.random() > 0.3 ? 'LOW' : 'MEDIUM',
+      profitPotential: Math.floor(Math.random() * 200) + 50,
+      marketValue: 750,
+      sellerRating: 98.5,
+      timeToSell: Math.floor(Math.random() * 20) + 5,
+      confidence: Math.random() * 0.3 + 0.7
+    };
+
+    setCurrentItem(mockResult);
+    setIsProcessing(false);
+
+    // Update user journey
+    setUserJourney(prev => ({
+      ...prev,
+      progress: Math.min(prev.progress + 20, 100),
+      trustScore: mockResult.trustScore,
+      engagement: prev.engagement + 10
+    }));
+
+    // Show achievement if high trust score
+    if (mockResult.trustScore >= 85) {
+      setTimeout(() => {
+        setShowAchievement({
+          name: '🎯 Great Find!',
+          description: 'Found a high-trust item',
+          reward: '+50 Experience Points'
+        });
+      }, 1000);
+    }
+
+    // Simulate finding arbitrage opportunities
+    if (userJourney.type === 'flipper') {
+      const mockOpportunities = [
+        {
+          item: 'MacBook Air M1',
+          buy_price: 750,
+          sell_price: 900,
+          profit_margin: 0.15,
+          platform_buy: 'Facebook Marketplace',
+          platform_sell: 'eBay'
+        }
+      ];
+      setArbitrageOpportunities(mockOpportunities);
+    }
+  };
+
+  const handlePhotoUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoData(e.target.result);
+        // Auto-trigger AI analysis for sellers
+        if (userJourney.type === 'seller') {
+          setTimeout(handleVerifyItem, 500);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
+          {userJourney.type === 'buyer' && 'Verify eBay Listing'}
+          {userJourney.type === 'seller' && 'Create Smart Listing'}
+          {userJourney.type === 'flipper' && 'Find Profit Opportunities'}
+        </h2>
+        <p className="text-gray-400 text-sm">
+          {userJourney.type === 'buyer' && 'Paste eBay URL or upload screenshot for instant analysis'}
+          {userJourney.type === 'seller' && 'Upload product photo for AI-powered listing generation'}
+          {userJourney.type === 'flipper' && 'Scan markets for cross-platform arbitrage opportunities'}
+        </p>
+      </div>
+
+      {/* Input Methods */}
+      <div className="space-y-4 mb-6">
+        {/* URL Input for Buyers */}
+        {userJourney.type === 'buyer' && (
+          <div className="relative">
+            <input
+              type="url"
+              value={itemUrl}
+              onChange={(e) => setItemUrl(e.target.value)}
+              placeholder="Paste eBay listing URL here..."
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+            <button
+              onClick={handleVerifyItem}
+              disabled={!itemUrl || isProcessing}
+              className="absolute right-2 top-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200"
+            >
+              {isProcessing ? '🔍 Analyzing...' : 'Verify'}
+            </button>
+          </div>
+        )}
+
+        {/* Photo Upload for Sellers */}
+        {userJourney.type === 'seller' && (
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-2 border-dashed border-blue-400/50 rounded-xl py-8 px-4 hover:border-blue-400 transition-all duration-300"
+            >
+              <Camera className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+              <div className="text-blue-300 font-semibold">Upload Product Photo</div>
+              <div className="text-xs text-gray-400 mt-1">AI will enhance and analyze automatically</div>
+            </button>
+          </div>
+        )}
+
+        {/* Scan Button for Flippers */}
+        {userJourney.type === 'flipper' && (
+          <button
+            onClick={handleVerifyItem}
+            disabled={isProcessing}
+            className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 disabled:opacity-50 text-white py-4 rounded-xl font-bold text-lg transition-all duration-200 transform hover:scale-105"
+          >
+            {isProcessing ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                <span>Scanning Markets...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center space-x-2">
+                <TrendingUp className="w-5 h-5" />
+                <span>Scan for Arbitrage</span>
+              </div>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Photo Preview */}
+      {photoData && (
+        <div className="mb-6">
+          <img 
+            src={photoData} 
+            alt="Product" 
+            className="w-full h-48 object-cover rounded-xl border border-white/20"
+          />
+          <div className="mt-2 text-center text-sm text-gray-400">
+            ✨ AI Enhancement Applied
+          </div>
+        </div>
+      )}
+
+      {/* Processing Animation */}
+      {isProcessing && (
+        <div className="text-center py-8">
+          <div className="inline-flex items-center space-x-2 bg-white/10 rounded-full px-6 py-3">
+            <div className="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+            <span className="text-purple-300 font-semibold">
+              {userJourney.type === 'buyer' && 'Analyzing listing safety...'}
+              {userJourney.type === 'seller' && 'Generating optimized listing...'}
+              {userJourney.type === 'flipper' && 'Scanning for opportunities...'}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Trust Indicator Component
+const TrustIndicator = ({ currentItem }) => {
+  if (!currentItem) {
+    return (
+      <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
+        <div className="text-center text-gray-400">
+          <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <div className="font-semibold">Ready to Analyze</div>
+          <div className="text-sm">Upload or paste a listing to see instant trust analysis</div>
+        </div>
+      </div>
+    );
+  }
+
+  const getTrustColor = (score) => {
+    if (score >= 80) return { bg: 'bg-green-500', text: 'text-green-400', ring: 'ring-green-500' };
+    if (score >= 60) return { bg: 'bg-yellow-500', text: 'text-yellow-400', ring: 'ring-yellow-500' };
+    return { bg: 'bg-red-500', text: 'text-red-400', ring: 'ring-red-500' };
+  };
+
+  const trustColor = getTrustColor(currentItem.trustScore);
+
+  return (
+    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
+      <div className="text-center mb-6">
+        <div className={`w-20 h-20 ${trustColor.bg} rounded-full flex items-center justify-center mx-auto mb-4 ${trustColor.ring} ring-4 ring-opacity-30`}>
+          <span className="text-2xl font-bold text-white">{currentItem.trustScore}</span>
+        </div>
+        <div className={`text-lg font-bold ${trustColor.text}`}>
+          {currentItem.trustScore >= 80 && '✅ SAFE TO BUY'}
+          {currentItem.trustScore >= 60 && currentItem.trustScore < 80 && '⚠️ PROCEED CAREFULLY'}
+          {currentItem.trustScore < 60 && '❌ HIGH RISK'}
+        </div>
+        <div className="text-sm text-gray-400 mt-1">
+          Confidence: {Math.round(currentItem.confidence * 100)}%
+        </div>
+      </div>
+
+      {/* Quick Metrics */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="bg-white/10 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-400">Market Value</div>
+          <div className="text-lg font-bold text-green-400">${currentItem.marketValue}</div>
+        </div>
+        <div className="bg-white/10 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-400">Profit Potential</div>
+          <div className="text-lg font-bold text-blue-400">${currentItem.profitPotential}</div>
+        </div>
+        <div className="bg-white/10 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-400">Seller Rating</div>
+          <div className="text-lg font-bold text-yellow-400">{currentItem.sellerRating}%</div>
+        </div>
+        <div className="bg-white/10 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-400">Est. Sell Time</div>
+          <div className="text-lg font-bold text-purple-400">{currentItem.timeToSell}d</div>
+        </div>
+      </div>
+
+      {/* Trust Signals */}
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2 text-sm">
+          <span className="text-green-400">✓</span>
+          <span className="text-gray-300">Price within market range</span>
+        </div>
+        <div className="flex items-center space-x-2 text-sm">
+          <span className="text-green-400">✓</span>
+          <span className="text-gray-300">Established seller account</span>
+        </div>
+        <div className="flex items-center space-x-2 text-sm">
+          <span className="text-yellow-400">⚠</span>
+          <span className="text-gray-300">Limited return policy</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Live Opportunities Component
+const LiveOpportunities = () => {
+  const [opportunities] = useState([
+    { item: 'MacBook Pro M1', profit: 180, confidence: 92, timeLeft: '2h' },
+    { item: 'PlayStation 5', profit: 85, confidence: 88, timeLeft: '45m' },
+    { item: 'iPhone 13', profit: 120, confidence: 95, timeLeft: '1h' }
+  ]);
+
+  return (
+    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-white">🔥 Live Opportunities</h3>
+        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+          {opportunities.length} Active
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        {opportunities.map((opp, index) => (
+          <div key={index} className="bg-white/10 rounded-lg p-3 hover:bg-white/15 transition-all duration-200 cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-sm text-white">{opp.item}</div>
+                <div className="text-xs text-gray-400">
+                  ${opp.profit} profit • {opp.confidence}% confidence
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-red-400 font-semibold">{opp.timeLeft}</div>
+                <div className="text-xs text-gray-400">remaining</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-2 rounded-lg text-sm font-semibold transition-all duration-200">
+        View All Opportunities
+      </button>
+    </div>
+  );
+};
+
+// Recent Activity Component
+const RecentActivity = ({ userJourney }) => {
+  const [activities] = useState([
+    { type: 'profit', amount: 120, item: 'iPhone 12', time: '2h ago' },
+    { type: 'save', amount: 85, item: 'MacBook Air', time: '4h ago' },
+    { type: 'risk_avoided', item: 'Suspicious listing', time: '1d ago' }
+  ]);
+
+  return (
+    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+
+      <div className="space-y-3">
+        {activities.map((activity, index) => (
+          <div key={index} className="flex items-center space-x-3">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+              activity.type === 'profit' ? 'bg-green-500/20 text-green-400' :
+              activity.type === 'save' ? 'bg-blue-500/20 text-blue-400' :
+              'bg-red-500/20 text-red-400'
+            }`}>
+              {activity.type === 'profit' && <DollarSign className="w-4 h-4" />}
+              {activity.type === 'save' && <Target className="w-4 h-4" />}
+              {activity.type === 'risk_avoided' && <Shield className="w-4 h-4" />}
+            </div>
+            <div className="flex-1">
+              <div className="text-sm text-white">
+                {activity.type === 'profit' && `+${activity.amount} profit from ${activity.item}`}
+                {activity.type === 'save' && `Saved ${activity.amount} on ${activity.item}`}
+                {activity.type === 'risk_avoided' && `Avoided risky: ${activity.item}`}
+              </div>
+              <div className="text-xs text-gray-400">{activity.time}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Achievement Popup Component
+const AchievementPopup = ({ achievement, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 mx-4 text-center max-w-md transform animate-bounce-in">
+        <div className="text-6xl mb-4">🏆</div>
+        <h2 className="text-2xl font-bold text-white mb-2">{achievement.name}</h2>
+        <p className="text-purple-100 mb-4">{achievement.description}</p>
+        <div className="bg-white/20 rounded-lg p-3 mb-4">
+          <div className="text-sm text-purple-100">Reward</div>
+          <div className="text-lg font-bold text-white">{achievement.reward}</div>
+        </div>
+        <button
+          onClick={onClose}
+          className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200"
+        >
+          Awesome! 🎉
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Sound Effects Component
+const SoundEffects = ({ soundEnabled }) => {
+  // In a real implementation, this would handle audio playback
+  return null;
+};
+
+// Add custom animations
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes bounce-in {
+    0% { transform: scale(0.3) rotate(-5deg); opacity: 0; }
+    50% { transform: scale(1.1) rotate(2deg); }
+    70% { transform: scale(0.9) rotate(-1deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  .animate-bounce-in {
+    animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+`;
+document.head.appendChild(style);
+
+export default EBayIntelligenceApp;
